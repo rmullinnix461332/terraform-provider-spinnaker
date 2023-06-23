@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tidal-engineering/terraform-provider-spinnaker/spinnaker/api"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourcePipeline() *schema.Resource {
@@ -63,7 +62,7 @@ func resourcePipelineCreate(data *schema.ResourceData, meta interface{}) error {
 	tmp["name"] = pipelineName
 	delete(tmp, "id")
 
-	if err := api.CreatePipeline(client, tmp); err != nil {
+	if err := client.CreatePipeline(tmp); err != nil {
 		return err
 	}
 
@@ -77,7 +76,7 @@ func resourcePipelineRead(data *schema.ResourceData, meta interface{}) error {
 	pipelineName := data.Get("name").(string)
 
 	var p pipelineRead
-	jsonMap, err := api.GetPipeline(client, applicationName, pipelineName, &p)
+	jsonMap, err := client.GetPipeline(applicationName, pipelineName, &p)
 	if err != nil {
 		return err
 	}
@@ -122,7 +121,7 @@ func resourcePipelineUpdate(data *schema.ResourceData, meta interface{}) error {
 	pipe["name"] = pipelineName
 	pipe["id"] = pipelineID.(string)
 
-	if err := api.UpdatePipeline(client, pipelineID.(string), pipe); err != nil {
+	if err := client.UpdatePipeline(pipelineID.(string), pipe); err != nil {
 		return err
 	}
 	return resourcePipelineRead(data, meta)
@@ -134,7 +133,7 @@ func resourcePipelineDelete(data *schema.ResourceData, meta interface{}) error {
 	applicationName := data.Get("application").(string)
 	pipelineName := data.Get("name").(string)
 
-	if err := api.DeletePipeline(client, applicationName, pipelineName); err != nil {
+	if err := client.DeletePipeline(applicationName, pipelineName); err != nil {
 		return err
 	}
 
@@ -148,7 +147,7 @@ func resourcePipelineExists(data *schema.ResourceData, meta interface{}) (bool, 
 	pipelineName := data.Get("name").(string)
 
 	var p pipelineRead
-	if _, err := api.GetPipeline(client, applicationName, pipelineName, &p); err != nil {
+	if _, err := client.GetPipeline(applicationName, pipelineName, &p); err != nil {
 		return false, err
 	}
 

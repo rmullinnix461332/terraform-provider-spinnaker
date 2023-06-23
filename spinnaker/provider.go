@@ -1,14 +1,16 @@
 package spinnaker
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	"github.com/spf13/pflag"
-	gate "github.com/spinnaker/spin/cmd/gateclient"
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/tidal-engineering/terraform-provider-spinnaker/gateclient"
 )
 
-func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+func New() *schema.Provider {
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"server": {
 				Type:        schema.TypeString,
@@ -16,17 +18,23 @@ func Provider() terraform.ResourceProvider {
 				Description: "URL for Gate",
 				DefaultFunc: schema.EnvDefaultFunc("GATE_URL", nil),
 			},
-			"config": {
+			"x509_cert": {
 				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path to Gate config file",
-				DefaultFunc: schema.EnvDefaultFunc("SPINNAKER_CONFIG_PATH", nil),
+				Required:    true,
+				Description: "x509 Certificate for authenticating to Gate",
+				DefaultFunc: schema.EnvDefaultFunc("GATE_X509_CERT", nil),
+			},
+			"x509_key": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "x509 private key for authenticating to Gate",
+				DefaultFunc: schema.EnvDefaultFunc("GATE_X509_KEY", nil),
 			},
 			"ignore_cert_errors": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Ignore certificate errors from Gate",
-				Default:     false,
+				Default:     true,
 			},
 			"default_headers": {
 				Type:        schema.TypeString,
@@ -44,36 +52,35 @@ func Provider() terraform.ResourceProvider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"spinnaker_pipeline": datasourcePipeline(),
 		},
-		ConfigureFunc: providerConfigureFunc,
+		ConfigureContextFunc: providerConfigure,
 	}
+
+	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		return providerConfigure(ctx, d)
+	}
+
+	return p
 }
 
 type gateConfig struct {
 	server string
-	client *gate.GatewayClient
+	client *gateclient.GatewayClient
 }
 
-func providerConfigureFunc(data *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	server := data.Get("server").(string)
-	config := data.Get("config").(string)
+	x509_cert := data.Get("x509_cert").(string)
+	x509_key := data.Get("x509_key").(string)
 	ignoreCertErrors := data.Get("ignore_cert_errors").(bool)
 	defaultHeaders := data.Get("default_headers").(string)
 
-	flags := pflag.NewFlagSet("default", 1)
-	flags.String("gate-endpoint", server, "")
-	flags.Bool("quiet", false, "")
-	flags.Bool("insecure", ignoreCertErrors, "")
-	flags.Bool("no-color", true, "")
-	flags.String("output", "", "")
-	flags.String("config", config, "")
-	flags.String("default-headers", defaultHeaders, "")
-	// flags.Parse()
-	client, err := gate.NewGateClient(flags)
+	client, err := gateclient.NewGateClient(server, defaultHeaders, x509_cert, x509_key, ignoreCertErrors)
+
 	if err != nil {
-		return nil, err
+		fmt.Println("config error", err)
 	}
 	return gateConfig{
-		server: data.Get("server").(string),
+		server: server,
 		client: client,
-	}, nil
+	}, diag.Diagnostics{}
 }

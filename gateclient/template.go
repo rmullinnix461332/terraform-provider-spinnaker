@@ -1,19 +1,18 @@
-package api
+package gateclient
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/mitchellh/mapstructure"
-	gate "github.com/spinnaker/spin/cmd/gateclient"
 )
 
 const (
 	ErrCodeNoSuchEntityException = "NoSuchEntityException"
 )
 
-func CreatePipelineTemplate(client *gate.GatewayClient, template interface{}) error {
-	resp, err := client.PipelineTemplatesControllerApi.CreateUsingPOST(client.Context, template)
+func (m *GatewayClient) CreatePipelineTemplate(template interface{}) error {
+	resp, err := m.PipelineTemplatesControllerApi.CreateUsingPOST(m.Context, template)
 	if err != nil {
 		return err
 	}
@@ -25,8 +24,8 @@ func CreatePipelineTemplate(client *gate.GatewayClient, template interface{}) er
 	return nil
 }
 
-func GetPipelineTemplate(client *gate.GatewayClient, templateID string, dest interface{}) error {
-	successPayload, resp, err := client.PipelineTemplatesControllerApi.GetUsingGET(client.Context, templateID)
+func (m *GatewayClient) GetPipelineTemplate(templateID string, dest interface{}) error {
+	successPayload, resp, err := m.PipelineTemplatesControllerApi.GetUsingGET(m.Context, templateID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("%s", ErrCodeNoSuchEntityException)
@@ -54,8 +53,8 @@ func GetPipelineTemplate(client *gate.GatewayClient, templateID string, dest int
 	return nil
 }
 
-func DeletePipelineTemplate(client *gate.GatewayClient, templateID string) error {
-	_, resp, err := client.PipelineTemplatesControllerApi.DeleteUsingDELETE(client.Context, templateID, nil)
+func (m *GatewayClient) DeletePipelineTemplate(templateID string) error {
+	_, resp, err := m.PipelineTemplatesControllerApi.DeleteUsingDELETE(m.Context, templateID, nil)
 	if err != nil {
 		return err
 	}
@@ -69,8 +68,8 @@ func DeletePipelineTemplate(client *gate.GatewayClient, templateID string) error
 	return nil
 }
 
-func UpdatePipelineTemplate(client *gate.GatewayClient, templateID string, template interface{}) error {
-	resp, err := client.PipelineTemplatesControllerApi.UpdateUsingPOST(client.Context, templateID, template, nil)
+func (m *GatewayClient) UpdatePipelineTemplate(templateID string, template interface{}) error {
+	resp, err := m.PipelineTemplatesControllerApi.UpdateUsingPOST(m.Context, templateID, template, nil)
 	if err != nil {
 		return err
 	}

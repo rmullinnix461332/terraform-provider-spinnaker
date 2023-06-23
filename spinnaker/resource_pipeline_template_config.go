@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tidal-engineering/terraform-provider-spinnaker/spinnaker/api"
 	"github.com/ghodss/yaml"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/tidal-engineering/terraform-provider-spinnaker/gateclient"
 )
 
 type PipelineConfig struct {
@@ -82,7 +82,7 @@ func resourcePipelineTemplateConfigCreate(data *schema.ResourceData, meta interf
 	}
 
 	log.Println("[DEBUG] Making request to spinnaker")
-	if err := api.CreatePipeline(client, *pConfig); err != nil {
+	if err := client.CreatePipeline(*pConfig); err != nil {
 		log.Printf("[DEBUG] Error response from spinnaker: %s", err.Error())
 		return err
 	}
@@ -99,8 +99,8 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 	name := data.Get("name").(string)
 
 	p := PipelineConfig{}
-	if _, err := api.GetPipeline(client, application, name, &p); err != nil {
-		if err.Error() == api.ErrCodeNoSuchEntityException {
+	if _, err := client.GetPipeline(application, name, &p); err != nil {
+		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
 			data.SetId("")
 			return nil
 		}
@@ -133,7 +133,7 @@ func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interf
 	}
 
 	pConfig.ID = pipelineID
-	if err := api.UpdatePipeline(client, pipelineID, *pConfig); err != nil {
+	if err := client.UpdatePipeline(pipelineID, *pConfig); err != nil {
 		return err
 	}
 
@@ -146,7 +146,7 @@ func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interf
 	application := data.Get("application").(string)
 	name := data.Get("name").(string)
 
-	if err := api.DeletePipeline(client, application, name); err != nil {
+	if err := client.DeletePipeline(application, name); err != nil {
 		return err
 	}
 
@@ -160,8 +160,8 @@ func resourcePipelineTemplateConfigExists(data *schema.ResourceData, meta interf
 	templateName := data.Id()
 
 	var t templateRead
-	if err := api.GetPipelineTemplate(client, templateName, &t); err != nil {
-		if err.Error() == api.ErrCodeNoSuchEntityException {
+	if err := client.GetPipelineTemplate(templateName, &t); err != nil {
+		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
 			return false, nil
 		}
 		return false, err

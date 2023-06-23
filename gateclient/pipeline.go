@@ -1,15 +1,14 @@
-package api
+package gateclient
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/mitchellh/mapstructure"
-	gate "github.com/spinnaker/spin/cmd/gateclient"
 )
 
-func CreatePipeline(client *gate.GatewayClient, pipeline interface{}) error {
-	resp, err := client.PipelineControllerApi.SavePipelineUsingPOST(client.Context, pipeline)
+func (m *GatewayClient) CreatePipeline(pipeline interface{}) error {
+	resp, err := m.PipelineControllerApi.SavePipelineUsingPOST(m.Context, pipeline, nil)
 
 	if err != nil {
 		return err
@@ -22,8 +21,8 @@ func CreatePipeline(client *gate.GatewayClient, pipeline interface{}) error {
 	return nil
 }
 
-func GetPipeline(client *gate.GatewayClient, applicationName, pipelineName string, dest interface{}) (map[string]interface{}, error) {
-	jsonMap, resp, err := client.ApplicationControllerApi.GetPipelineConfigUsingGET(client.Context,
+func (m *GatewayClient) GetPipeline(applicationName, pipelineName string, dest interface{}) (map[string]interface{}, error) {
+	jsonMap, resp, err := m.ApplicationControllerApi.GetPipelineConfigUsingGET(m.Context,
 		applicationName,
 		pipelineName)
 
@@ -54,8 +53,8 @@ func GetPipeline(client *gate.GatewayClient, applicationName, pipelineName strin
 	return jsonMap, nil
 }
 
-func UpdatePipeline(client *gate.GatewayClient, pipelineID string, pipeline interface{}) error {
-	_, resp, err := client.PipelineControllerApi.UpdatePipelineUsingPUT(client.Context, pipelineID, pipeline)
+func (m *GatewayClient) UpdatePipeline(pipelineID string, pipeline interface{}) error {
+	_, resp, err := m.PipelineControllerApi.UpdatePipelineUsingPUT(m.Context, pipelineID, pipeline)
 
 	if err != nil {
 		return err
@@ -68,8 +67,8 @@ func UpdatePipeline(client *gate.GatewayClient, pipelineID string, pipeline inte
 	return nil
 }
 
-func DeletePipeline(client *gate.GatewayClient, applicationName, pipelineName string) error {
-	resp, err := client.PipelineControllerApi.DeletePipelineUsingDELETE(client.Context, applicationName, pipelineName)
+func (m *GatewayClient) DeletePipeline(applicationName, pipelineName string) error {
+	resp, err := m.PipelineControllerApi.DeletePipelineUsingDELETE(m.Context, applicationName, pipelineName)
 
 	if err != nil {
 		return err

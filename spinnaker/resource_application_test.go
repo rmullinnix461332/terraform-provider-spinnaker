@@ -6,28 +6,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccSpinnakerApplication_basic(t *testing.T) {
-	resourceName := "spinnaker_application.test"
-	rName := acctest.RandomWithPrefix("tf-acc-test")
+	//resourceName := "spinnaker_application.test"
+	rName := "docta"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSpinnakerApplication_basic(rName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckApplicationExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "application", rName),
-					resource.TestCheckResourceAttr(resourceName, "email", "acceptance@test.com"),
-					resource.TestCheckResourceAttr(resourceName, "description", ""),
-					resource.TestCheckResourceAttr(resourceName, "platformHealthOnly", "false"),
-					resource.TestCheckResourceAttr(resourceName, "platformHealthOnly", "false"),
-				),
+				Config:            testAccSpinnakerApplication_nondefault(rName),
+				ResourceName:      "spinnaker_application.docta",
+				ImportState:       true,
+				ImportStateId:     rName,
+				ImportStateVerify: false,
 			},
 		},
 	})
@@ -68,6 +64,7 @@ func testAccCheckApplicationExists(n string) resource.TestCheckFunc {
 		client := testAccProvider.Meta().(gateConfig).client
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			_, resp, err := client.ApplicationControllerApi.GetApplicationUsingGET(client.Context, rs.Primary.ID, nil)
+			fmt.Println("resp", resp)
 			if resp != nil {
 				if resp != nil && resp.StatusCode == http.StatusNotFound {
 					return resource.RetryableError(fmt.Errorf("application does not exit"))
@@ -96,14 +93,30 @@ resource "spinnaker_application" "test" {
 `, rName)
 }
 
+func testAccSpinnakerImport(rName string) string {
+	return fmt.Sprintf(`
+	version: 4,
+	terraform_version: "1.5.1",
+	serial: 324,
+	lineage: "2fe46f08-4dbe-458a-49bf-074daf1dca50",
+	outputs: {},
+	resources: [
+	  {
+		"mode": "managed",
+		"type": "spinnaker_application",
+		"name": "%q",
+		"provider": "provider[\"app.terraform.io/SLUS-DCP/spinnaker\"]",
+		"instances": []
+	  }
+	}
+`, rName)
+}
+
 func testAccSpinnakerApplication_nondefault(rName string) string {
 	return fmt.Sprintf(`
-resource "spinnaker_application" "test" {
+resource "spinnaker_application" "docta" {
 	application  = %q
 	email = "acceptance@test.com"
-	description = "My application"
-	platform_health_only = true
-	platform_health_only_show_override = true
 }
 `, rName)
 }

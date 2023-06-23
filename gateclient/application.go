@@ -1,4 +1,4 @@
-package api
+package gateclient
 
 import (
 	"fmt"
@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	gate "github.com/spinnaker/spin/cmd/gateclient"
 )
 
-func GetApplication(client *gate.GatewayClient, applicationName string, dest interface{}) error {
-	app, resp, err := client.ApplicationControllerApi.GetApplicationUsingGET(client.Context, applicationName, map[string]interface{}{
-		"expand": false,
-	})
+func (m *GatewayClient) GetApplication(applicationName string, dest interface{}) error {
+	fmt.Println("get application", applicationName, m.gateEndpoint)
+	app, resp, err := m.ApplicationControllerApi.GetApplicationUsingGET(m.Context, applicationName, nil)
+
 	if resp != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Application '%s' not found\n", applicationName)
@@ -30,10 +29,11 @@ func GetApplication(client *gate.GatewayClient, applicationName string, dest int
 		return err
 	}
 
+	fmt.Println(dest)
 	return nil
 }
 
-func CreateApplication(client *gate.GatewayClient, applicationName, email,
+func (m *GatewayClient) CreateApplication(applicationName, email,
 	applicationDescription string, platformHealthOnly, platformHealthOnlyShowOverride bool) error {
 
 	app := map[string]interface{}{
@@ -51,7 +51,7 @@ func CreateApplication(client *gate.GatewayClient, applicationName, email,
 		"description": fmt.Sprintf("Create Application: %s", applicationName),
 	}
 
-	ref, _, err := client.TaskControllerApi.TaskUsingPOST1(client.Context, createAppTask)
+	ref, _, err := m.TaskControllerApi.TaskUsingPOST1(m.Context, createAppTask)
 	if err != nil {
 		return err
 	}
@@ -59,13 +59,13 @@ func CreateApplication(client *gate.GatewayClient, applicationName, email,
 	toks := strings.Split(ref["ref"].(string), "/")
 	id := toks[len(toks)-1]
 
-	task, resp, err := client.TaskControllerApi.GetTaskUsingGET1(client.Context, id)
+	task, resp, err := m.TaskControllerApi.GetTaskUsingGET1(m.Context, id)
 	attempts := 0
 	for (task == nil || !taskCompleted(task)) && attempts < 5 {
 		toks := strings.Split(ref["ref"].(string), "/")
 		id := toks[len(toks)-1]
 
-		task, resp, err = client.TaskControllerApi.GetTaskUsingGET1(client.Context, id)
+		task, resp, err = m.TaskControllerApi.GetTaskUsingGET1(m.Context, id)
 		attempts += 1
 		time.Sleep(time.Duration(attempts*attempts) * time.Second)
 	}
@@ -83,7 +83,7 @@ func CreateApplication(client *gate.GatewayClient, applicationName, email,
 	return nil
 }
 
-func DeleteAppliation(client *gate.GatewayClient, applicationName string) error {
+func (m *GatewayClient) DeleteAppliation(applicationName string) error {
 	jobSpec := map[string]interface{}{
 		"type": "deleteApplication",
 		"application": map[string]interface{}{
@@ -97,7 +97,7 @@ func DeleteAppliation(client *gate.GatewayClient, applicationName string) error 
 		"description": fmt.Sprintf("Delete Application: %s", applicationName),
 	}
 
-	_, resp, err := client.TaskControllerApi.TaskUsingPOST1(client.Context, deleteAppTask)
+	_, resp, err := m.TaskControllerApi.TaskUsingPOST1(m.Context, deleteAppTask)
 
 	if err != nil {
 		return err
