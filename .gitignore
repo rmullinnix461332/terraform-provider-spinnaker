@@ -8,5 +8,5 @@ vendor/*
 /dist/
 *.key
 /keys/
-
+.DS_Store
 dist/
