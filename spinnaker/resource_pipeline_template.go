@@ -9,12 +9,16 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/tidal-engineering/terraform-provider-spinnaker/gateclient"
+	"github.com/rmullinnix461332/terraform-provider-spinnaker/gateclient"
 )
 
 func resourcePipelineTemplate() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"template": {
 				Type:             schema.TypeString,
 				Required:         true,
@@ -43,7 +47,7 @@ type templateRead struct {
 func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	var templateName string
+
 	template := data.Get("template").(string)
 
 	d, err := yaml.YAMLToJSON([]byte(template))
@@ -60,7 +64,7 @@ func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Pipeline save command currently only supports pipeline template configurations")
 	}
 
-	templateName = jsonContent["id"].(string)
+	templateName := jsonContent["id"].(string)
 
 	log.Println("[DEBUG] Making request to spinnaker")
 	if err := client.CreatePipelineTemplate(jsonContent); err != nil {
@@ -69,13 +73,16 @@ func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] Created template successfully")
+
 	data.SetId(templateName)
+
 	return resourcePipelineTemplateRead(data, meta)
 }
 
 func resourcePipelineTemplateRead(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
+
 	templateName := data.Id()
 
 	t := make(map[string]interface{})

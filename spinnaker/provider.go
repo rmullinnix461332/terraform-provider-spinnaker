@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/tidal-engineering/terraform-provider-spinnaker/gateclient"
+	"github.com/rmullinnix461332/terraform-provider-spinnaker/gateclient"
 )
 
 func New() *schema.Provider {
@@ -53,10 +53,6 @@ func New() *schema.Provider {
 			"spinnaker_pipeline": datasourcePipeline(),
 		},
 		ConfigureContextFunc: providerConfigure,
-	}
-
-	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		return providerConfigure(ctx, d)
 	}
 
 	return p

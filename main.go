@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/tidal-engineering/terraform-provider-spinnaker/spinnaker"
+	"github.com/rmullinnix461332/terraform-provider-spinnaker/spinnaker"
 )
 
 func main() {

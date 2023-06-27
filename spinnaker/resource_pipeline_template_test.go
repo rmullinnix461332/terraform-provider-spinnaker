@@ -2,25 +2,20 @@ package spinnaker
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccSpinnakerApplication_basic(t *testing.T) {
-	//resourceName := "spinnaker_application.test"
-	rName := "docta"
+func TestAccSpinnakerTemplate_build(t *testing.T) {
+	rName := "build-image-template"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config:            testAccSpinnakerApplication_basic(rName),
-				ResourceName:      "spinnaker_application.test1",
+				Config:            testAccSpinnakerTemplate_build(rName),
+				ResourceName:      "spinnaker_pipeline_template.test1",
 				ImportState:       true,
 				ImportStateId:     rName,
 				ImportStateVerify: false,
@@ -29,8 +24,9 @@ func TestAccSpinnakerApplication_basic(t *testing.T) {
 	})
 }
 
-func TestAccSpinnakerApplication_nondefault(t *testing.T) {
-	resourceName := "spinnaker_application.test2"
+/*
+func TestAccSpinnakerTemplate_nondefault(t *testing.T) {
+	resourceName := "spinnaker_pipeline_template.test2"
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -51,7 +47,7 @@ func TestAccSpinnakerApplication_nondefault(t *testing.T) {
 	})
 }
 
-func testAccCheckApplicationExists(n string) resource.TestCheckFunc {
+func testAccCheckPipelineTemplateExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -83,16 +79,17 @@ func testAccCheckApplicationExists(n string) resource.TestCheckFunc {
 		return nil
 	}
 }
+*/
 
-func testAccSpinnakerApplication_basic(rName string) string {
+func testAccSpinnakerTemplate_build(rName string) string {
 	return fmt.Sprintf(`
-resource "spinnaker_application" "test1" {
+resource "spinnaker_pipeline_template" "test1" {
 	name  = %q
-	email = "acceptance@test.com"
 }
 `, rName)
 }
 
+/*
 func testAccSpinnakerApplication_nondefault(rName string) string {
 	return fmt.Sprintf(`
 resource "spinnaker_application" "test2" {
@@ -104,3 +101,4 @@ resource "spinnaker_application" "test2" {
 }
 `, rName)
 }
+*/

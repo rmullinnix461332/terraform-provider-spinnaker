@@ -40,12 +40,6 @@ func resourcePipeline() *schema.Resource {
 	}
 }
 
-type pipelineRead struct {
-	Name        string `json:"name"`
-	Application string `json:"application"`
-	ID          string `json:"id"`
-}
-
 func resourcePipelineCreate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
@@ -94,6 +88,7 @@ func resourcePipelineRead(data *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Could not set pipeline_id for pipeline %s: %s", pipelineName, err)
 	}
+
 	data.SetId(p.ID)
 
 	return nil
@@ -102,6 +97,7 @@ func resourcePipelineRead(data *schema.ResourceData, meta interface{}) error {
 func resourcePipelineUpdate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
+
 	applicationName := data.Get("application").(string)
 	pipelineName := data.Get("name").(string)
 	pipeline := data.Get("pipeline").(string)
@@ -130,6 +126,7 @@ func resourcePipelineUpdate(data *schema.ResourceData, meta interface{}) error {
 func resourcePipelineDelete(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
+
 	applicationName := data.Get("application").(string)
 	pipelineName := data.Get("name").(string)
 
@@ -143,6 +140,7 @@ func resourcePipelineDelete(data *schema.ResourceData, meta interface{}) error {
 func resourcePipelineExists(data *schema.ResourceData, meta interface{}) (bool, error) {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
+
 	applicationName := data.Get("application").(string)
 	pipelineName := data.Get("name").(string)
 

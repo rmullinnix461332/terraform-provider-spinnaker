@@ -7,3 +7,6 @@ pipelines
 vendor/*
 /dist/
 *.key
+/keys/
+
+dist/

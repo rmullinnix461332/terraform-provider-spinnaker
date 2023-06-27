@@ -1,4 +1,4 @@
-module github.com/tidal-engineering/terraform-provider-spinnaker
+module github.com/rmullinnix461332/terraform-provider-spinnaker
 
 go 1.14
 

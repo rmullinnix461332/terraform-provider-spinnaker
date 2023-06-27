@@ -10,7 +10,6 @@ import (
 )
 
 func (m *GatewayClient) GetApplication(applicationName string, dest interface{}) error {
-	fmt.Println("get application", applicationName, m.gateEndpoint)
 	app, resp, err := m.ApplicationControllerApi.GetApplicationUsingGET(m.Context, applicationName, nil)
 
 	if resp != nil {
@@ -29,7 +28,6 @@ func (m *GatewayClient) GetApplication(applicationName string, dest interface{})
 		return err
 	}
 
-	fmt.Println(dest)
 	return nil
 }
 

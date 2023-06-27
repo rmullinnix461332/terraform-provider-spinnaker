@@ -1,7 +1,6 @@
 package spinnaker
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -10,7 +9,7 @@ import (
 func resourceApplication() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"application": {
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateApplicationName,
@@ -34,6 +33,11 @@ func resourceApplication() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+			"cloud_providers": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 		},
 		Create: resourceApplicationCreate,
 		Read:   resourceApplicationRead,
@@ -46,19 +50,11 @@ func resourceApplication() *schema.Resource {
 	}
 }
 
-type applicationRead struct {
-	Name       string `json:"name"`
-	Attributes struct {
-		Email         string `json:"email"`
-		Accounts      string `json:"accounts"`
-		CloudProvider string `json:"cloudProviders"`
-	} `json:"attributes"`
-}
-
 func resourceApplicationCreate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	application := data.Get("application").(string)
+
+	application := data.Get("name").(string)
 	email := data.Get("email").(string)
 	description := data.Get("description").(string)
 	platform_health_only := data.Get("platform_health_only").(bool)
@@ -68,20 +64,26 @@ func resourceApplicationCreate(data *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	return resourceApplicationRead(data, meta)
+	data.SetId(application)
+
+	return nil
+	//return resourceApplicationRead(data, meta)
 }
 
 func resourceApplicationRead(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	applicationName := data.Get("application").(string)
-	fmt.Println(clientConfig, client, applicationName)
+
+	applicationName := data.Id()
+
 	var app applicationRead
-	if err := client.GetApplication("docta", &app); err != nil {
+	if err := client.GetApplication(applicationName, &app); err != nil {
 		return err
 	}
 
-	return readApplication(data, app)
+	data.SetId(app.Name)
+
+	return nil
 }
 
 func resourceApplicationUpdate(data *schema.ResourceData, meta interface{}) error {
@@ -91,7 +93,8 @@ func resourceApplicationUpdate(data *schema.ResourceData, meta interface{}) erro
 func resourceApplicationDelete(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	applicationName := data.Get("application").(string)
+
+	applicationName := data.Id()
 
 	return client.DeleteAppliation(applicationName)
 }
@@ -99,10 +102,12 @@ func resourceApplicationDelete(data *schema.ResourceData, meta interface{}) erro
 func resourceApplicationExists(data *schema.ResourceData, meta interface{}) (bool, error) {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	applicationName := data.Get("application").(string)
-	fmt.Println(clientConfig, client, applicationName)
+
+	applicationName := data.Id()
+
 	var app applicationRead
-	if err := client.GetApplication("docta", &app); err != nil {
+
+	if err := client.GetApplication(applicationName, &app); err != nil {
 		errmsg := err.Error()
 		if strings.Contains(errmsg, "not found") {
 			return false, nil
@@ -115,9 +120,4 @@ func resourceApplicationExists(data *schema.ResourceData, meta interface{}) (boo
 	}
 
 	return true, nil
-}
-
-func readApplication(data *schema.ResourceData, application applicationRead) error {
-	data.SetId(application.Name)
-	return nil
 }

@@ -4,32 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/tidal-engineering/terraform-provider-spinnaker/gateclient"
+	"github.com/rmullinnix461332/terraform-provider-spinnaker/gateclient"
 )
-
-type PipelineConfig struct {
-	ID                   string                   `json:"id,omitempty"`
-	Type                 string                   `json:"type,omitempty"`
-	Name                 string                   `json:"name"`
-	Application          string                   `json:"application"`
-	Description          string                   `json:"description,omitempty"`
-	ExecutionEngine      string                   `json:"executionEngine,omitempty"`
-	Parallel             bool                     `json:"parallel"`
-	LimitConcurrent      bool                     `json:"limitConcurrent"`
-	KeepWaitingPipelines bool                     `json:"keepWaitingPipelines"`
-	Stages               []map[string]interface{} `json:"stages,omitempty"`
-	Triggers             []map[string]interface{} `json:"triggers,omitempty"`
-	ExpectedArtifacts    []map[string]interface{} `json:"expectedArtifacts,omitempty"`
-	Parameters           []map[string]interface{} `json:"parameterConfig,omitempty"`
-	Notifications        []map[string]interface{} `json:"notifications,omitempty"`
-	LastModifiedBy       string                   `json:"lastModifiedBy"`
-	Config               interface{}              `json:"config,omitempty"`
-	UpdateTs             string                   `json:"updateTs"`
-}
 
 func resourcePipelineTemplateConfig() *schema.Resource {
 	return &schema.Resource{
@@ -39,36 +19,27 @@ func resourcePipelineTemplateConfig() *schema.Resource {
 				Required:         true,
 				DiffSuppressFunc: suppressEquivalentPipelineTemplateDiffs,
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
-				ForceNew: true,
-			},
 			"application": {
 				Type:     schema.TypeString,
+				Required: true,
+			},
+			"template_name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"id": {
+				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
-			},
-			"parallel": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-			"limit_concurrent": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-			"keep_waiting": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
 			},
 		},
 		Create: resourcePipelineTemplateConfigCreate,
 		Read:   resourcePipelineTemplateConfigRead,
 		Update: resourcePipelineTemplateConfigUpdate,
 		Delete: resourcePipelineTemplateConfigDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: schema.ImportStatePassthroughContext,
+		},
 	}
 }
 
@@ -77,26 +48,30 @@ func resourcePipelineTemplateConfigCreate(data *schema.ResourceData, meta interf
 	client := clientConfig.client
 
 	pConfig, err := buildConfig(data)
+
 	if err != nil {
 		return err
 	}
 
-	log.Println("[DEBUG] Making request to spinnaker")
 	if err := client.CreatePipeline(*pConfig); err != nil {
-		log.Printf("[DEBUG] Error response from spinnaker: %s", err.Error())
+		fmt.Printf("[DEBUG] Error response from spinnaker: %s", err.Error())
 		return err
 	}
 
-	data.Set("name", pConfig.Name)
-	data.Set("application", pConfig.Application)
-	return resourcePipelineTemplateConfigRead(data, meta)
+	data.SetId(pConfig.Application + ":" + pConfig.Name)
+
+	return nil
 }
 
 func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	application := data.Get("application").(string)
-	name := data.Get("name").(string)
+
+	id := data.Id()
+
+	parts := strings.Split(id, ":")
+	application := parts[0]
+	name := parts[1]
 
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
@@ -106,19 +81,17 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 		}
 		return err
 	}
+	/*
+		raw, err := yaml.Marshal(p)
+		if err != nil {
+			return err
+		}
 
-	raw, err := yaml.Marshal(p.Config)
-	if err != nil {
-		return err
-	}
-
-	data.Set("name", p.Name)
-	data.Set("application", p.Application)
-	data.Set("parallel", p.Parallel)
-	data.Set("keep_waiting", p.KeepWaitingPipelines)
-	data.Set("limit_concurrent", p.LimitConcurrent)
-	data.Set("pipeline_config", raw)
+		data.Set("template_name", p.Name)
+		data.Set("application", p.Application)
+	*/
 	data.SetId(p.ID)
+
 	return nil
 }
 
@@ -143,14 +116,16 @@ func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interf
 func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
+
 	application := data.Get("application").(string)
-	name := data.Get("name").(string)
+	name := data.Get("template_name").(string)
 
 	if err := client.DeletePipeline(application, name); err != nil {
 		return err
 	}
 
 	data.SetId("")
+
 	return nil
 }
 
@@ -187,37 +162,19 @@ func buildConfig(data *schema.ResourceData) (*PipelineConfig, error) {
 		return nil, fmt.Errorf("Error decoding json: %s", err.Error())
 	}
 
-	pipeline, ok := jsonContent["pipeline"]
+	_, ok := jsonContent["name"].(string)
 	if !ok {
-		return nil, fmt.Errorf("pipeline not set in configuration")
+		return nil, fmt.Errorf("pipeline name not set in configuration")
 	}
 
-	p := pipeline.(map[string]interface{})
-	name, ok := p["name"].(string)
-	if !ok {
-		return nil, fmt.Errorf("name not set in pipeline configuration")
-	}
-
-	application, ok := p["application"].(string)
+	_, ok = jsonContent["application"].(string)
 	if !ok {
 		return nil, fmt.Errorf("application not set in pipeline configuration")
 	}
 
-	pConfig := &PipelineConfig{
-		Name:                 name,
-		Application:          application,
-		Type:                 "templatedPipeline",
-		Parallel:             data.Get("parallel").(bool),
-		LimitConcurrent:      data.Get("limit_concurrent").(bool),
-		KeepWaitingPipelines: data.Get("keep_waiting").(bool),
-		Config:               jsonContent,
-	}
+	var pConfig PipelineConfig
+	json.Unmarshal(d, &pConfig)
+	pConfig.Type = "templatedPipeline"
 
-	if c, ok := jsonContent["configuration"].(map[string]interface{}); ok {
-		log.Printf("[DEBUG] %s", c)
-		if description, ok := c["description"]; ok {
-			pConfig.Description = description.(string)
-		}
-	}
-	return pConfig, nil
+	return &pConfig, err
 }
