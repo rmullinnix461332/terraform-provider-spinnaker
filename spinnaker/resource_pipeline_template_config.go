@@ -68,7 +68,6 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 	application := parts[0]
 	name := parts[1]
 
-	fmt.Println("template config", application, name)
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
 		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
@@ -93,7 +92,6 @@ func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interf
 	application := parts[0]
 	name := parts[1]
 
-	fmt.Println("update template", application, name)
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
 		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
@@ -147,7 +145,6 @@ func resourcePipelineTemplateConfigExists(data *schema.ResourceData, meta interf
 	application := parts[0]
 	name := parts[1]
 
-	fmt.Println("template config", application, name)
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
 		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
