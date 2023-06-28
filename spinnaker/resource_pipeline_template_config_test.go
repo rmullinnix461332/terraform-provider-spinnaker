@@ -3,6 +3,7 @@ package spinnaker
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,6 +32,7 @@ func TestAccSpinnakerTemplateConfig_nondefault(t *testing.T) {
 	resourceName := "spinnaker_pipeline_template_config.test2"
 	appName := "docta"
 	templateName := "Build and Deploy EKS 2"
+	tempNameUpdate := "Build and Deploy EKS 3"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -40,6 +42,14 @@ func TestAccSpinnakerTemplateConfig_nondefault(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPipelineTemplateConfigExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "template_name", templateName),
+					resource.TestCheckResourceAttr(resourceName, "application", appName),
+				),
+			},
+			{
+				Config: testAccSpinnakerTemplateConfig_update(appName, tempNameUpdate),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPipelineTemplateConfigExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "template_name", tempNameUpdate),
 					resource.TestCheckResourceAttr(resourceName, "application", appName),
 				),
 			},
@@ -58,9 +68,17 @@ func testAccCheckPipelineTemplateConfigExists(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Application ID is set")
 		}
+		fmt.Println(rs.Primary.ID)
+
+		parts := strings.Split(rs.Primary.ID, ":")
+		applicationName := parts[0]
+		templateName := parts[1]
+
 		client := testAccProvider.Meta().(gateConfig).client
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-			_, resp, err := client.ApplicationControllerApi.GetApplicationUsingGET(client.Context, rs.Primary.ID, nil)
+			_, resp, err := client.ApplicationControllerApi.GetPipelineConfigUsingGET(client.Context,
+				applicationName,
+				templateName)
 
 			if resp != nil {
 				if resp != nil && resp.StatusCode == http.StatusNotFound {
@@ -90,6 +108,20 @@ resource "spinnaker_pipeline_template_config" "test1" {
 }
 
 func testAccSpinnakerTemplateConfig_nondefault(appName string, templateName string) string {
+	return fmt.Sprintf(`
+locals {
+	our_rendered_content = templatefile("${path.module}/test/test_template_config.yaml", {})
+}
+
+resource "spinnaker_pipeline_template_config" "test2" {
+	template_name   = %q
+	application     = %q
+	pipeline_config = local.our_rendered_content
+}
+`, templateName, appName)
+}
+
+func testAccSpinnakerTemplateConfig_update(appName string, templateName string) string {
 	return fmt.Sprintf(`
 locals {
 	our_rendered_content = templatefile("${path.module}/test/test_template_config.yaml", {})

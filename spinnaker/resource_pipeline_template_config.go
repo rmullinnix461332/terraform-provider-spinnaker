@@ -27,11 +27,6 @@ func resourcePipelineTemplateConfig() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-				ForceNew: true,
-			},
 		},
 		Create: resourcePipelineTemplateConfigCreate,
 		Read:   resourcePipelineTemplateConfigRead,
@@ -73,6 +68,7 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 	application := parts[0]
 	name := parts[1]
 
+	fmt.Println("template config", application, name)
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
 		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
@@ -81,16 +77,8 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 		}
 		return err
 	}
-	/*
-		raw, err := yaml.Marshal(p)
-		if err != nil {
-			return err
-		}
 
-		data.Set("template_name", p.Name)
-		data.Set("application", p.Application)
-	*/
-	data.SetId(p.ID)
+	data.SetId(id)
 
 	return nil
 }
@@ -98,27 +86,47 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	pipelineID := data.Id()
+
+	id := data.Id()
+
+	parts := strings.Split(id, ":")
+	application := parts[0]
+	name := parts[1]
+
+	fmt.Println("update template", application, name)
+	p := PipelineConfig{}
+	if _, err := client.GetPipeline(application, name, &p); err != nil {
+		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
+			data.SetId("")
+			return nil
+		}
+		return err
+	}
 
 	pConfig, err := buildConfig(data)
 	if err != nil {
 		return err
 	}
 
-	pConfig.ID = pipelineID
-	if err := client.UpdatePipeline(pipelineID, *pConfig); err != nil {
+	pConfig.ID = p.ID
+	if err := client.UpdatePipeline(p.ID, *pConfig); err != nil {
 		return err
 	}
 
-	return resourcePipelineTemplateConfigRead(data, meta)
+	data.SetId(pConfig.Application + ":" + pConfig.Name)
+
+	return nil
 }
 
 func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
 
-	application := data.Get("application").(string)
-	name := data.Get("template_name").(string)
+	id := data.Id()
+
+	parts := strings.Split(id, ":")
+	application := parts[0]
+	name := parts[1]
 
 	if err := client.DeletePipeline(application, name); err != nil {
 		return err
@@ -132,17 +140,23 @@ func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interf
 func resourcePipelineTemplateConfigExists(data *schema.ResourceData, meta interface{}) (bool, error) {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
-	templateName := data.Id()
 
-	var t templateRead
-	if err := client.GetPipelineTemplate(templateName, &t); err != nil {
+	id := data.Id()
+
+	parts := strings.Split(id, ":")
+	application := parts[0]
+	name := parts[1]
+
+	fmt.Println("template config", application, name)
+	p := PipelineConfig{}
+	if _, err := client.GetPipeline(application, name, &p); err != nil {
 		if err.Error() == gateclient.ErrCodeNoSuchEntityException {
 			return false, nil
 		}
 		return false, err
 	}
 
-	if t.ID == templateName {
+	if p.Name == name {
 		return true, nil
 	}
 
@@ -151,6 +165,7 @@ func resourcePipelineTemplateConfigExists(data *schema.ResourceData, meta interf
 
 func buildConfig(data *schema.ResourceData) (*PipelineConfig, error) {
 	config := data.Get("pipeline_config").(string)
+	tName := data.Get("template_name").(string)
 
 	d, err := yaml.YAMLToJSON([]byte(config))
 	if err != nil {
@@ -175,6 +190,7 @@ func buildConfig(data *schema.ResourceData) (*PipelineConfig, error) {
 	var pConfig PipelineConfig
 	json.Unmarshal(d, &pConfig)
 	pConfig.Type = "templatedPipeline"
+	pConfig.Name = tName
 
 	return &pConfig, err
 }
