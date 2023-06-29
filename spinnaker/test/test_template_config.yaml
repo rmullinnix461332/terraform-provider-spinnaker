@@ -1,16 +1,14 @@
-schema: "v2"
-name: "Build and Deploy EKS 2"
-application: "docta"
+schema: v2
+name: Build and Deploy EKS 2
+application: docta
+type: templatedPipeline
 template:
-  artifactAccount: "front50ArtifactCredentials"
-  reference: "spinnaker://build-and-deploy-EKS-template"
-  type: "front50/pipelineTemplate"
+  artifactAccount: front50ArtifactCredentials
+  reference: spinnaker://build-and-deploy-EKS-template
+  type: front50/pipelineTemplate
 variables:
-  application: "docta"
-  business_unit: "digital-cloud-platform"
-  namespace: "security-system"
-  organization: "slus-dcp"
+  application: docta
+  business_unit: digital-cloud-platform
+  namespace: security-system
+  organization: slus-dcp
   skip_deploy: false
-stages: []
-modules: []
-partials: []

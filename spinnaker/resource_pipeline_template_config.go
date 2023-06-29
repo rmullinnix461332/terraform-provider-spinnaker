@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"reflect"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -17,7 +19,7 @@ func resourcePipelineTemplateConfig() *schema.Resource {
 			"pipeline_config": {
 				Type:             schema.TypeString,
 				Required:         true,
-				DiffSuppressFunc: suppressEquivalentPipelineTemplateDiffs,
+				DiffSuppressFunc: suppressEquivalentPipelineConfigDiffs,
 			},
 			"application": {
 				Type:     schema.TypeString,
@@ -26,6 +28,7 @@ func resourcePipelineTemplateConfig() *schema.Resource {
 			"template_name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 		Create: resourcePipelineTemplateConfigCreate,
@@ -55,7 +58,7 @@ func resourcePipelineTemplateConfigCreate(data *schema.ResourceData, meta interf
 
 	data.SetId(pConfig.Application + ":" + pConfig.Name)
 
-	return nil
+	return resourcePipelineTemplateConfigRead(data, meta)
 }
 
 func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interface{}) error {
@@ -77,9 +80,19 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 		return err
 	}
 
+	jsonContent, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	raw, err := yaml.JSONToYAML(jsonContent)
+	if err != nil {
+		return err
+	}
+
 	data.Set("template_name", name)
 	data.Set("application", application)
-	data.Set("pipeline_config", p)
+	data.Set("pipeline_config", string(raw))
 
 	data.SetId(id)
 
@@ -115,13 +128,23 @@ func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interf
 		return err
 	}
 
-	data.Set("template_name", name)
+	jsonContent, err := json.Marshal(pConfig)
+	if err != nil {
+		return err
+	}
+
+	raw, err := yaml.JSONToYAML(jsonContent)
+	if err != nil {
+		return err
+	}
+
+	data.Set("template_name", pConfig.Name)
 	data.Set("application", application)
-	data.Set("pipeline_config", pConfig)
+	data.Set("pipeline_config", string(raw))
 
-	data.SetId(pConfig.Application + ":" + pConfig.Name)
+	data.SetId(application + ":" + pConfig.Name)
 
-	return nil
+	return resourcePipelineTemplateConfigRead(data, meta)
 }
 
 func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interface{}) error {
@@ -132,7 +155,7 @@ func resourcePipelineTemplateConfigDelete(data *schema.ResourceData, meta interf
 
 	parts := strings.Split(id, ":")
 	application := parts[0]
-	name := parts[1]
+	name := data.Get("template_name").(string)
 
 	if err := client.DeletePipeline(application, name); err != nil {
 		return err
@@ -151,7 +174,7 @@ func resourcePipelineTemplateConfigExists(data *schema.ResourceData, meta interf
 
 	parts := strings.Split(id, ":")
 	application := parts[0]
-	name := parts[1]
+	name := data.Get("template_name").(string)
 
 	p := PipelineConfig{}
 	if _, err := client.GetPipeline(application, name, &p); err != nil {
@@ -198,4 +221,41 @@ func buildConfig(data *schema.ResourceData) (*PipelineConfig, error) {
 	pConfig.Name = tName
 
 	return &pConfig, err
+}
+
+func suppressEquivalentPipelineConfigDiffs(k, old, new string, d *schema.ResourceData) bool {
+	equivalent, err := areRoughlyEqualJSON(old, new)
+	if err != nil {
+		return false
+	}
+
+	return equivalent
+}
+
+func areRoughlyEqualJSON(s1 string, s2 string) (bool, error) {
+	var o1 PipelineConfig
+	var o2 PipelineConfig
+
+	var err error
+	log.Printf("[DEBUG] s1: %s", s1)
+	err = yaml.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 1 :: %s", err.Error())
+	}
+	log.Printf("[DEBUG] s2: %s", s2)
+	err = yaml.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
+	}
+
+	equal := true
+	if len(o1.ID) > 0 && len(o2.ID) > 0 {
+		equal = o1.ID == o2.ID
+	}
+
+	equal = equal && o1.Application == o2.Application
+	equal = equal && o1.Description == o2.Description
+	equal = equal && reflect.DeepEqual(o1.Variables, o2.Variables)
+
+	return equal, nil
 }

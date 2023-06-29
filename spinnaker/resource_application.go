@@ -18,7 +18,7 @@ func resourceApplication() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"cloudProviders": {
+			"cloud_providers": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "kubernetes",
@@ -57,7 +57,7 @@ func resourceApplicationCreate(data *schema.ResourceData, meta interface{}) erro
 	email := data.Get("email").(string)
 	description := data.Get("description").(string)
 	port := data.Get("port").(int)
-	cloudProviders := data.Get("cloudProviders").(string)
+	cloudProviders := data.Get("cloud_providers").(string)
 
 	if err := client.CreateApplication(application, email, description, port, cloudProviders); err != nil {
 		return err
@@ -82,7 +82,7 @@ func resourceApplicationRead(data *schema.ResourceData, meta interface{}) error 
 
 	data.Set("email", app.Attributes.Email)
 	data.Set("description", app.Attributes.Description)
-	data.Set("cloudProviders", app.Attributes.CloudProviders)
+	data.Set("cloud_providers", app.Attributes.CloudProviders)
 	data.Set("port", app.Attributes.InstancePort)
 	data.Set("accounts", app.Attributes.Accounts)
 

@@ -43,8 +43,7 @@ func TestAccSpinnakerApplication_nondefault(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "email", "acceptance@test.com"),
 					resource.TestCheckResourceAttr(resourceName, "description", "My application"),
-					resource.TestCheckResourceAttr(resourceName, "platform_health_only", "true"),
-					resource.TestCheckResourceAttr(resourceName, "platform_health_only_show_override", "true"),
+					resource.TestCheckResourceAttr(resourceName, "port", "8080"),
 				),
 			},
 		},
@@ -96,11 +95,10 @@ resource "spinnaker_application" "test1" {
 func testAccSpinnakerApplication_nondefault(rName string) string {
 	return fmt.Sprintf(`
 resource "spinnaker_application" "test2" {
-	name                               = %q
-	email                              = "acceptance@test.com"
-	description                        = "My application"
-	platform_health_only               = true
-	platform_health_only_show_override = true
+	name        = %q
+	email       = "acceptance@test.com"
+	description = "My application"
+	port        = 8080
 }
 `, rName)
 }
