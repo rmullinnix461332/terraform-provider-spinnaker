@@ -31,16 +31,15 @@ func (m *GatewayClient) GetApplication(applicationName string, dest interface{})
 	return nil
 }
 
-func (m *GatewayClient) CreateApplication(applicationName, email,
-	applicationDescription string, platformHealthOnly, platformHealthOnlyShowOverride bool) error {
+func (m *GatewayClient) CreateApplication(applicationName string, email string,
+	applicationDescription string, port int, cloudProviders string) error {
 
 	app := map[string]interface{}{
-		"instancePort":                   80,
-		"name":                           applicationName,
-		"email":                          email,
-		"platformHealthOnly":             platformHealthOnly,
-		"platformHealthOnlyShowOverride": platformHealthOnlyShowOverride,
-		"description":                    applicationDescription,
+		"instancePort":   port,
+		"name":           applicationName,
+		"email":          email,
+		"cloudProviders": cloudProviders,
+		"description":    applicationDescription,
 	}
 
 	createAppTask := map[string]interface{}{

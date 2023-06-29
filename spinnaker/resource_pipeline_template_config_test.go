@@ -68,7 +68,6 @@ func testAccCheckPipelineTemplateConfigExists(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Application ID is set")
 		}
-		fmt.Println(rs.Primary.ID)
 
 		parts := strings.Split(rs.Primary.ID, ":")
 		applicationName := parts[0]

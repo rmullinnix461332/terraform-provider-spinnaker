@@ -18,25 +18,24 @@ func resourceApplication() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"platform_health_only": {
-				Type:     schema.TypeBool,
+			"cloudProviders": {
+				Type:     schema.TypeString,
 				Optional: true,
-				Default:  false,
+				Default:  "kubernetes",
 			},
-			"platform_health_only_show_override": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"accounts": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"cloud_providers": {
-				Type:     schema.TypeString,
+			"port": {
+				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  "",
+				Default:  80,
 			},
 		},
 		Create: resourceApplicationCreate,
@@ -57,17 +56,17 @@ func resourceApplicationCreate(data *schema.ResourceData, meta interface{}) erro
 	application := data.Get("name").(string)
 	email := data.Get("email").(string)
 	description := data.Get("description").(string)
-	platform_health_only := data.Get("platform_health_only").(bool)
-	platform_health_only_show_override := data.Get("platform_health_only_show_override").(bool)
+	port := data.Get("port").(int)
+	cloudProviders := data.Get("cloudProviders").(string)
 
-	if err := client.CreateApplication(application, email, description, platform_health_only, platform_health_only_show_override); err != nil {
+	if err := client.CreateApplication(application, email, description, port, cloudProviders); err != nil {
 		return err
 	}
 
 	data.SetId(application)
 
 	return nil
-	//return resourceApplicationRead(data, meta)
+	// return resourceApplicationRead(data, meta)
 }
 
 func resourceApplicationRead(data *schema.ResourceData, meta interface{}) error {
@@ -80,6 +79,12 @@ func resourceApplicationRead(data *schema.ResourceData, meta interface{}) error 
 	if err := client.GetApplication(applicationName, &app); err != nil {
 		return err
 	}
+
+	data.Set("email", app.Attributes.Email)
+	data.Set("description", app.Attributes.Description)
+	data.Set("cloudProviders", app.Attributes.CloudProviders)
+	data.Set("port", app.Attributes.InstancePort)
+	data.Set("accounts", app.Attributes.Accounts)
 
 	data.SetId(app.Name)
 

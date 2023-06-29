@@ -77,6 +77,10 @@ func resourcePipelineTemplateConfigRead(data *schema.ResourceData, meta interfac
 		return err
 	}
 
+	data.Set("template_name", name)
+	data.Set("application", application)
+	data.Set("pipeline_config", p)
+
 	data.SetId(id)
 
 	return nil
@@ -110,6 +114,10 @@ func resourcePipelineTemplateConfigUpdate(data *schema.ResourceData, meta interf
 	if err := client.UpdatePipeline(p.ID, *pConfig); err != nil {
 		return err
 	}
+
+	data.Set("template_name", name)
+	data.Set("application", application)
+	data.Set("pipeline_config", pConfig)
 
 	data.SetId(pConfig.Application + ":" + pConfig.Name)
 

@@ -6,10 +6,11 @@ type applicationRead struct {
 }
 
 type applicationAttributes struct {
-	Description   string `json:"description"`
-	Email         string `json:"email"`
-	Accounts      string `json:"accounts"`
-	CloudProvider string `json:"cloudProviders"`
+	Description    string `json:"description"`
+	Email          string `json:"email"`
+	Accounts       string `json:"accounts"`
+	CloudProviders string `json:"cloudProviders"`
+	InstancePort   string `json:"instancePort"`
 }
 
 type pipelineRead struct {
