@@ -41,6 +41,13 @@ func TestAccSpinnakerTemplate_nondefault(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 				),
 			},
+			{
+				Config: testAccSpinnakerTemplate_nondefault(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPipelineTemplateExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+				),
+			},
 		},
 	})
 }
@@ -94,8 +101,17 @@ locals {
 }
 
 resource "spinnaker_pipeline_template" "test2" {
-	name                               = %q
-	template                           = local.rendered_template
+	name     = %q
+	template = local.rendered_template
+}
+`, rName)
+}
+
+func testAccSpinnakerTemplate_update(rName string) string {
+	return fmt.Sprintf(`
+resource "spinnaker_pipeline_template" "test1" {
+	name     = %q
+	template = local.rendered_template
 }
 `, rName)
 }

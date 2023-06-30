@@ -179,6 +179,7 @@ func resourcePipelineTemplateExists(data *schema.ResourceData, meta interface{})
 
 func suppressEquivalentPipelineTemplateDiffs(k, old, new string, d *schema.ResourceData) bool {
 	equivalent, err := areEqualJSON(old, new)
+
 	if err != nil {
 		return false
 	}
@@ -202,5 +203,12 @@ func areEqualJSON(s1, s2 string) (bool, error) {
 		return false, fmt.Errorf("Error mashalling string 2 :: %s", err.Error())
 	}
 
-	return reflect.DeepEqual(o1, o2), nil
+	var x1 interface{}
+	bytesA, _ := json.Marshal(o1)
+	_ = json.Unmarshal(bytesA, &x1)
+	var x2 interface{}
+	bytesB, _ := json.Marshal(o2)
+	_ = json.Unmarshal(bytesB, &x2)
+
+	return reflect.DeepEqual(x1, x2), nil
 }
