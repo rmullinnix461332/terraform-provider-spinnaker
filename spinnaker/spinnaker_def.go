@@ -30,3 +30,16 @@ type PipelineConfig struct {
 	Variables   map[string]interface{}   `json:"variables,omitempty"`
 	Template    map[string]interface{}   `json:"template,omitempty"`
 }
+
+type templateRead struct {
+	ID       string         `json:"id"`
+	MetaData MetadataStruct `json:"metadata"`
+	Pipeline interface{}    `json:"pipeline"`
+}
+
+type MetadataStruct struct {
+	Description string   `json:"description"`
+	Name        string   `json:"name"`
+	Owner       string   `json:"owner"`
+	Scopes      []string `json:"scopes"`
+}

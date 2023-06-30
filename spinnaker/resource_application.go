@@ -92,7 +92,30 @@ func resourceApplicationRead(data *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceApplicationUpdate(data *schema.ResourceData, meta interface{}) error {
-	return nil
+	clientConfig := meta.(gateConfig)
+	client := clientConfig.client
+
+	applicationName := data.Id()
+
+	if data.HasChanges("email", "description", "port") {
+		var app applicationRead
+		if err := client.GetApplication(applicationName, &app); err != nil {
+			return err
+		}
+
+		email := data.Get("email").(string)
+		description := data.Get("description").(string)
+		port := data.Get("port").(int)
+		cloudProviders := app.Attributes.CloudProviders
+
+		if err := client.CreateApplication(applicationName, email, description, port, cloudProviders); err != nil {
+			return err
+		}
+	}
+
+	data.SetId(applicationName)
+
+	return resourceApplicationRead(data, meta)
 }
 
 func resourceApplicationDelete(data *schema.ResourceData, meta interface{}) error {

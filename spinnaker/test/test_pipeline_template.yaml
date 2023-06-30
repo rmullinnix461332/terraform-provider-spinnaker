@@ -1,0 +1,57 @@
+schema: v2
+variables: []
+id: test-build-image-template
+protect: false
+metadata:
+  name: Test Build Image
+  description: Build Image sub-pipeline template
+  owner: acceptance@test.com
+  scopes:
+    - global
+pipeline:
+  expectedArtifacts: []
+  lastModifiedBy: acceptance@test.com
+  updateTs: '0'
+  parameterConfig:
+    - type: string
+      defaultValue: ''
+      description: Name of the organization. This should match the Github Organization
+      name: organization
+      hasOptions: false
+      pinned: true
+      required: true
+    - type: string
+      defaultValue: ''
+      description: >-
+        Name of the application. This is used for naming artifacts and should
+        match the Github Repository
+      name: application
+      hasOptions: false
+      pinned: true
+      required: true
+    - default: ''
+      description: Branch, tag, or commit SHA
+      hasOptions: false
+      label: Version
+      name: version
+      pinned: true
+      required: true
+  limitConcurrent: false
+  keepWaitingPipelines: false
+  description: ''
+  triggers: []
+  notifications: []
+  stages:
+    - continuePipeline: false
+      failPipeline: true
+      job: Test Build Image
+      master: jenkins
+      name: Test Build Image
+      parameters:
+        PROJECT_NAME: $${ parameters.application }
+        SCM_BRANCH: $${ parameters.version }
+        SCM_REPOSITORY_URL: >-
+          git@github.com:$${parameters.organization}/$${ parameters.application}.git
+      refId: image1
+      requisiteStageRefIds: []
+      type: jenkins

@@ -16,8 +16,9 @@ func resourcePipelineTemplate() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateTemplateName,
 			},
 			"template": {
 				Type:             schema.TypeString,
@@ -40,15 +41,12 @@ func resourcePipelineTemplate() *schema.Resource {
 	}
 }
 
-type templateRead struct {
-	ID string `json:"id"`
-}
-
 func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{}) error {
 	clientConfig := meta.(gateConfig)
 	client := clientConfig.client
 
 	template := data.Get("template").(string)
+	templateName := data.Get("name").(string)
 
 	d, err := yaml.YAMLToJSON([]byte(template))
 	if err != nil {
@@ -64,7 +62,8 @@ func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Pipeline save command currently only supports pipeline template configurations")
 	}
 
-	templateName := jsonContent["id"].(string)
+	jsonContent["id"] = templateName
+	//templateName := jsonContent["id"].(string)
 
 	log.Println("[DEBUG] Making request to spinnaker")
 	if err := client.CreatePipelineTemplate(jsonContent); err != nil {
@@ -76,7 +75,7 @@ func resourcePipelineTemplateCreate(data *schema.ResourceData, meta interface{})
 
 	data.SetId(templateName)
 
-	return resourcePipelineTemplateRead(data, meta)
+	return nil
 }
 
 func resourcePipelineTemplateRead(data *schema.ResourceData, meta interface{}) error {
@@ -107,10 +106,10 @@ func resourcePipelineTemplateRead(data *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return err
 	}
-	data.Set("name", t["id"].(string))
+	data.Set("name", templateName)
 	data.Set("template", string(raw))
 	data.Set("url", fmt.Sprintf("spinnaker://%s", t["id"].(string)))
-	data.SetId(t["id"].(string))
+	data.SetId(templateName)
 
 	return nil
 }

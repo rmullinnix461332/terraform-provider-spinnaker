@@ -32,6 +32,7 @@ func TestAccSpinnakerApplication_basic(t *testing.T) {
 func TestAccSpinnakerApplication_nondefault(t *testing.T) {
 	resourceName := "spinnaker_application.test2"
 	rName := acctest.RandomWithPrefix("tf-acc-test")
+	emailUpdate := "changed@test.com"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -44,6 +45,14 @@ func TestAccSpinnakerApplication_nondefault(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "email", "acceptance@test.com"),
 					resource.TestCheckResourceAttr(resourceName, "description", "My application"),
 					resource.TestCheckResourceAttr(resourceName, "port", "8080"),
+				),
+			},
+			{
+				Config: testAccSpinnakerApplication_update(rName, emailUpdate),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPipelineTemplateConfigExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "email", emailUpdate),
 				),
 			},
 		},
@@ -101,4 +110,15 @@ resource "spinnaker_application" "test2" {
 	port        = 8080
 }
 `, rName)
+}
+
+func testAccSpinnakerApplication_update(rName string, email string) string {
+	return fmt.Sprintf(`
+resource "spinnaker_application" "test2" {
+	name        = %q
+	email       = %q
+	description = "My application"
+	port        = 8080
+}
+`, rName, email)
 }
