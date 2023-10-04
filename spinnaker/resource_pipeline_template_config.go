@@ -256,6 +256,7 @@ func areRoughlyEqualJSON(s1 string, s2 string) (bool, error) {
 	equal = equal && o1.Application == o2.Application
 	equal = equal && o1.Description == o2.Description
 	equal = equal && reflect.DeepEqual(o1.Variables, o2.Variables)
+	equal = equal && reflect.DeepEqual(o1.Template, o2.Template)
 
 	return equal, nil
 }
